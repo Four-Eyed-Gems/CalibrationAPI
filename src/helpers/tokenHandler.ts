@@ -1,8 +1,5 @@
 import jwt from 'jsonwebtoken';
-import environmentConfig from '../constants/environment.constant';
-import { Request, Response, NextFunction } from 'express';
-import { ErrorResponse, InternalError } from '../utils/index';
-
+import { environmentConfig } from '../constants/index';
 
 export const generateAccessToken = (body: any) => {
     try {

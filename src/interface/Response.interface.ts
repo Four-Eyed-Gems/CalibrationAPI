@@ -4,5 +4,6 @@ export interface SuccessResponseType {
         email?: string;
         accessToken?: string;
         refreshToken?: string;
+        otp?: number
     },
 }

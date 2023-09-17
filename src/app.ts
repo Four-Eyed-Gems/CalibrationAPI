@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
 import routes from './routes';
 import { errors } from 'celebrate';
-import environmentConfig from './constants/environment.constant';
+import { environmentConfig } from './constants/index';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import ExpressMongoSanitize from 'express-mongo-sanitize';
@@ -26,6 +26,7 @@ export class App {
       response.header('Access-Control-Allow-Methods', '*');
       next();
     });
+
     this.app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
     this.app.use(routes);
     this.app.get("*", (req, res) => {

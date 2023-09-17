@@ -1,10 +1,10 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import User from '../models/user.model';
-import environmentConfig from '../constants/environment.constant';
+import { Request, Response } from 'express';
+import Users from '../models/user.model';
 import * as bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { ErrorResponse, InternalError, SuccessResponse } from '../utils/index';
-import { generateRefreshToken, generateAccessToken } from '../helpers/index';
+import { generateRefreshToken, generateAccessToken, validateOTP } from '../helpers/index';
+import { sendMail, otpGenerator } from '../helpers/index';
+import { constant } from '../constants/index';
 
 
 export class AuthService {
@@ -15,7 +15,7 @@ export class AuthService {
         return new ErrorResponse(res, 404, "Credential Not Found");
       }
 
-      const users = await User.findOne({ email: email });
+      const users = await Users.findOne({ email: email });
       if (!users) {
         return new ErrorResponse(res, 404, "User Not Found");
 
@@ -35,7 +35,7 @@ export class AuthService {
           if (accessToken != null && refreshToken != null) {
             body["accessToken"] = accessToken;
             body["refreshToken"] = refreshToken;
-            
+
             res.cookie("refreshToken", refreshToken, { httpOnly: true });
             return new SuccessResponse(res, body)
           }
@@ -54,12 +54,35 @@ export class AuthService {
     try {
       const { email, password } = req.body;
 
-      const users = await User.findOne({ email: email });
-      if (users) {
+      const users = await Users.findOne({ email: email });
+      // console.log("--Register user", users)
+      if (users && users.isVerified) {
         return new ErrorResponse(res, 409, 'User already exist..!')
-      } else {
+      }
+      else if (users && !users.isVerified) {
+        const otp = await otpGenerator();
+
+        //Generating ExpireTime
+        const currentDate = new Date();
+        const expiresIn = new Date();
+        expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
+
+        //Sending Email
+        let emailSent = await sendMail(email, otp);
+
+        if (emailSent) {
+          const otpObj = { otp: otp, expiresIn: expiresIn.getTime() }
+
+          await Users.findOneAndUpdate({ email: email }, { verification: otpObj });
+
+          return new ErrorResponse(res, 403, 'Verify OTP with Email')
+        } else {
+          return new ErrorResponse(res, 500, 'Email Generation Failed')
+        }
+      }
+      else {
         const hashPassword = await bcrypt.hashSync(password, 12);
-        const newuser: any = await User.create({
+        const newuser: any = await Users.create({
           email,
           password: hashPassword,
         });
@@ -75,6 +98,34 @@ export class AuthService {
     }
   }
 
+  public static async verifyOTP(req: Request, res: Response) {
+    try {
+      const { otp } = req.body;
+      console.log("otp", otp);
+      const user = await Users.findOne({ "verification.otp": otp })
+
+      if (user && user?.verification) {
+        const otpValid = await validateOTP(user?.verification?.expiresIn as any)
+        if (!otpValid) {
+          user.verification = undefined;
+          user?.save();
+          return new ErrorResponse(res, 401, "OTP Expired")
+        }
+        else {
+          user.isVerified = true;
+          user.verification = undefined;
+          user?.save();
+          return new SuccessResponse(res, {})
+        }
+      }
+      else {
+        return new ErrorResponse(res, 404, "User not Found")
+      }
+    } catch (error) {
+      console.log("verifyOTP  err->", error)
+      return new InternalError(res)
+    }
+  }
 
   public static async refreshTokenByToken(req: Request, res: Response) {
     try {
@@ -92,4 +143,5 @@ export class AuthService {
       return new InternalError(res);
     }
   }
+
 }

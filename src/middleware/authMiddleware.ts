@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import environmentConfig from '../constants/environment.constant';
-import User from '../models/user.model';
-import { MyUserRequest } from '../interface';
+import { environmentConfig, constant } from '../constants/index';
 import jwt = require('jsonwebtoken');
 import { ErrorResponse, InternalError } from '../utils/index';
 
@@ -40,5 +38,19 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
 
   } catch (error) {
     return new ErrorResponse(res, 401, "Unauthorized..!")
+  }
+}
+
+export const verifyBodyOTP = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    let { otp } = req.body;
+    otp = otp.toString();
+
+    if (otp && otp?.length != constant.OTP_LENGTH || otp.trim() == "") return new ErrorResponse(res, 401, "Invalid OTP");
+    if (!otp) return new ErrorResponse(res, 404, "otp not found");
+
+    next()
+  } catch (error) {
+    return new InternalError(res)
   }
 }

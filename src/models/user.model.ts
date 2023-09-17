@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose'
-import { UserInstance, } from '../interface';
+import { UserCreationAttributes, } from '../interface';
 
-const UserSchema = new Schema<UserInstance>({
+const UserSchema = new Schema<UserCreationAttributes>({
   email: {
     type: Schema.Types.String,
     required: true,
@@ -10,7 +10,15 @@ const UserSchema = new Schema<UserInstance>({
     type: Schema.Types.String,
     required: true
   },
-  refreshToken: String
+  refreshToken: String,
+  isVerified: {
+    type: Schema.Types.Boolean,
+    default: false,
+  },
+  verification: {
+    type: Schema.Types.Mixed,
+    required: false,
+  }
   // role: {
   //   type: Schema.Types.String,
   //   required: [true, "Role erquired Valids"],
@@ -30,5 +38,5 @@ const UserSchema = new Schema<UserInstance>({
   // }
 })
 
-const User = model("User", UserSchema)
-export default User;
+const Users = model("Users", UserSchema)
+export default Users;
