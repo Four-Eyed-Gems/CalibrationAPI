@@ -1,9 +1,9 @@
 import jwt from 'jsonwebtoken';
-import { environmentConfig } from '../constants/index';
+import { environmentConfig, constant } from '../constants/index';
 
 export const generateAccessToken = (body: any) => {
     try {
-        const token = jwt.sign(body, environmentConfig.JWT_SECRET, { expiresIn: 60 })
+        const token = jwt.sign(body, environmentConfig.JWT_SECRET, { expiresIn: constant.ACCESS_TOKEN_EXPIRE })
         return token
     } catch (error) {
         return null;
@@ -12,7 +12,7 @@ export const generateAccessToken = (body: any) => {
 
 export const generateRefreshToken = (body: any) => {
     try {
-        const refreshToken = jwt.sign(body, environmentConfig.JWT_SECRET, { expiresIn: "10m" })
+        const refreshToken = jwt.sign(body, environmentConfig.JWT_SECRET, { expiresIn: constant.REFRESH_TOKEN_EXPIRE })
         return refreshToken
     } catch (error) {
         return null;

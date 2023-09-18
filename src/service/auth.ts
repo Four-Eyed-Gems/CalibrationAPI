@@ -18,33 +18,57 @@ export class AuthService {
       const users = await Users.findOne({ email: email });
       if (!users) {
         return new ErrorResponse(res, 404, "User Not Found");
-
       } else {
         const passwordMatched = bcrypt.compareSync(password, users.password);
         if (!passwordMatched) {
           return new ErrorResponse(res, 401, "Unauthorized");
         } else {
-          let body: any = {
-            _id: users?._id,
-            email: users?.email
-          }
+          if (!users.isVerified) {
+            const otp = await otpGenerator();
 
-          const accessToken = generateAccessToken(body)
-          const refreshToken = generateRefreshToken(body)
+            //Generating ExpireTime
+            const currentDate = new Date();
+            const expiresIn = new Date();
+            expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
-          if (accessToken != null && refreshToken != null) {
-            body["accessToken"] = accessToken;
-            body["refreshToken"] = refreshToken;
+            //Sending Email
+            let emailSent = await sendMail(email, otp);
 
-            res.cookie("refreshToken", refreshToken, { httpOnly: true });
-            return new SuccessResponse(res, body)
+            if (emailSent) {
+              const otpObj = { otp: otp, expiresIn: expiresIn.getTime() }
+              console.log("otpObj 1-->", otpObj)
+              await Users.findOneAndUpdate({ email: email }, { verification: otpObj });
+
+              return new ErrorResponse(res, 403, 'Verify OTP with Email')
+            } else {
+              return new ErrorResponse(res, 500, 'Email Generation Failed')
+            }
           }
           else {
-            return new InternalError(res);
+
+            let body: any = {
+              _id: users?._id,
+              email: users?.email
+            }
+
+            const accessToken = generateAccessToken(body)
+            const refreshToken = generateRefreshToken(body)
+
+            if (accessToken != null && refreshToken != null) {
+              body["accessToken"] = accessToken;
+              body["refreshToken"] = refreshToken;
+
+              res.cookie("refreshToken", refreshToken, { httpOnly: true });
+              return new SuccessResponse(res, body)
+            }
+            else {
+              return new ErrorResponse(res, 403, "Token Generation Failed");
+            }
           }
         }
       }
     } catch (error: any) {
+      console.log("called", error)
       return res.status(Number(error.code)).json(error);
     }
   }
@@ -72,7 +96,7 @@ export class AuthService {
 
         if (emailSent) {
           const otpObj = { otp: otp, expiresIn: expiresIn.getTime() }
-
+          console.log("otpObj 1-->", otpObj)
           await Users.findOneAndUpdate({ email: email }, { verification: otpObj });
 
           return new ErrorResponse(res, 403, 'Verify OTP with Email')
@@ -90,7 +114,25 @@ export class AuthService {
         if (!newuser) {
           return new InternalError(res);
         } else {
-          return new SuccessResponse(res, {})
+          const otp = await otpGenerator();
+
+          //Generating ExpireTime
+          const currentDate = new Date();
+          const expiresIn = new Date();
+          expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
+
+          //Sending Email
+          let emailSent = await sendMail(email, otp);
+
+          if (emailSent) {
+            const otpObj = { otp: otp, expiresIn: expiresIn.getTime() }
+            console.log("otpObj 2-->", otpObj)
+            await Users.findOneAndUpdate({ email: email }, { verification: otpObj });
+
+            return new ErrorResponse(res, 403, 'Verify OTP with Email')
+          } else {
+            return new ErrorResponse(res, 500, 'Email Generation Failed')
+          }
         }
       }
     } catch (error: any) {
@@ -119,7 +161,7 @@ export class AuthService {
         }
       }
       else {
-        return new ErrorResponse(res, 404, "User not Found")
+        return new ErrorResponse(res, 404, "OTP Not Found")
       }
     } catch (error) {
       console.log("verifyOTP  err->", error)
