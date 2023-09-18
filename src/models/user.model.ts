@@ -19,24 +19,26 @@ const UserSchema = new Schema<UserCreationAttributes>({
     type: Schema.Types.Mixed,
     required: false,
   }
-  // role: {
-  //   type: Schema.Types.String,
-  //   required: [true, "Role erquired Valids"],
-  //   validate: {
-  //     validator: (role: String) => {
-  //       role = role.toLowerCase().trim();
-  //       console.log("-->role", role)
-  //       console.log("conditon", role != "admin" || role != "customer" || role != "vendor")
-  //       if (role == "admin" || role == "customer" || role == "vendor") {
-  //         console.log("if called")
-  //         return true
-  //       }
-  //       return false;
-  //     },
-  //     message: "Role is Required"
-  //   }
-  // }
 })
 
 const Users = model("Users", UserSchema)
 export default Users;
+
+
+// role: {
+//   type: Schema.Types.String,
+//   required: [true, "Role erquired Valids"],
+//   validate: {
+//     validator: (role: String) => {
+//       role = role.toLowerCase().trim();
+//       console.log("-->role", role)
+//       console.log("conditon", role != "admin" || role != "customer" || role != "vendor")
+//       if (role == "admin" || role == "customer" || role == "vendor") {
+//         console.log("if called")
+//         return true
+//       }
+//       return false;
+//     },
+//     message: "Role is Required"
+//   }
+// }

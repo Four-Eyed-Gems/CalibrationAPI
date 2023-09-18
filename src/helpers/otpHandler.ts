@@ -11,7 +11,6 @@ export const otpGenerator = async () => {
         }
         return parseInt(OTP);
     } catch (error) {
-        console.log("error in otp generator", error);
         const currentDate = new Date().getTime().toString()
         const OTP = currentDate.substring(currentDate?.length - OTP_LENGTH, currentDate?.length)
         return parseInt(OTP);
@@ -27,7 +26,6 @@ export const validateOTP = async (expiresIn: any) => {
         }
         return false
     } catch (error) {
-        console.log("validateOTP--->", error)
         return false;
     }
 }

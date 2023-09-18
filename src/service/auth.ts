@@ -68,7 +68,6 @@ export class AuthService {
         }
       }
     } catch (error: any) {
-      console.log("called", error)
       return res.status(Number(error.code)).json(error);
     }
   }
@@ -143,7 +142,6 @@ export class AuthService {
   public static async verifyOTP(req: Request, res: Response) {
     try {
       const { otp } = req.body;
-      console.log("otp", otp);
       const user = await Users.findOne({ "verification.otp": otp })
 
       if (user && user?.verification) {
@@ -164,7 +162,6 @@ export class AuthService {
         return new ErrorResponse(res, 404, "OTP Not Found")
       }
     } catch (error) {
-      console.log("verifyOTP  err->", error)
       return new InternalError(res)
     }
   }

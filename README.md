@@ -12,11 +12,22 @@
 
 ### Creating .env file
 
-- Create **.env** file from **.env.example**
+- Create **.env** file.
+- Add the followings variables in **.env**
+
+PORT=
+NODE_ENV=
+JWT_SECRET=
+MONGOOSE_URL=
+EMAIL_ID=
+PASSWORD=
+
+### Email Handler
+- For email otp you need to setup app password.
+- follow the this answer  https://stackoverflow.com/a/60718806
 
 ### Database setup steps
-
-- Create database in Mongoose **`Calibration`**
+- Add the mongodbURl in .env file and run the project. It will automatically create the database.
 
 ### Sample .xlsx File
 
