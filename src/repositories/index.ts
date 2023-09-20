@@ -3,3 +3,4 @@ export * from './login';
 export * from './userList';
 export * from './refreshToken';
 export * from './verify';
+export * from './forgotPassword';

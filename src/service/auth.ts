@@ -166,6 +166,32 @@ export class AuthService {
     }
   }
 
+  public static async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email, method } = req.body;
+      if (!email) return new ErrorResponse(res, 404, "email not found");
+      if (!method) return new ErrorResponse(res, 404, "method not found");
+      if (method == 1) {
+
+      }
+
+      if (method == 2) {
+
+      }
+    } catch (error) {
+      console.log("Error forgotpassword ->", error)
+      return new InternalError(res);
+    }
+  }
+
+  public static async checkUserInDB(req: Request, res: Response) {
+    try {
+
+    } catch (error) {
+      console.log("Error checkUserInDB ->", error)
+      return new InternalError(res);
+    }
+  }
   public static async refreshTokenByToken(req: Request, res: Response) {
     try {
       let body = req.body;

@@ -39,6 +39,9 @@ export class App {
       .then(() => {
         console.log("Connected to Mongoose")
       })
+      .catch(()=>{
+        console.log("Database Connectivity Failed")
+      })
     this.app.listen(environmentConfig.PORT, () => {
       console.log(`Server running on ${environmentConfig.PORT}`);
     });
