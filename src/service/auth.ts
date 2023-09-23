@@ -2,8 +2,7 @@ import { Request, Response } from 'express';
 import Users from '../models/user.model';
 import * as bcrypt from 'bcrypt';
 import { ErrorResponse, InternalError, SuccessResponse } from '../utils/index';
-import { generateRefreshToken, generateAccessToken, validateOTP } from '../helpers/index';
-import { sendMail, otpGenerator } from '../helpers/index';
+import { generateRefreshToken, generateAccessToken, validateOTP, sendMail, otpGenerator } from '../helpers/index';
 import { constant } from '../constants/index';
 
 
@@ -32,7 +31,7 @@ export class AuthService {
             expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
             //Sending Email
-            let emailSent = true;
+            let emailSent = await sendMail(email, verificationCode);
 
             if (emailSent) {
               const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
@@ -55,7 +54,7 @@ export class AuthService {
               users.verification = undefined;
               await users.save()
             }
-            
+
             const accessToken = generateAccessToken(body)
             const refreshToken = generateRefreshToken(body)
 
@@ -96,7 +95,7 @@ export class AuthService {
         expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
         //Sending Email
-        let emailSent = true;
+        let emailSent = await sendMail(email, verificationCode);
 
         if (emailSent) {
           const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
@@ -126,7 +125,7 @@ export class AuthService {
           expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
           //Sending Email
-          let emailSent = true;
+          let emailSent = await sendMail(email, verificationCode);
 
           if (emailSent) {
             const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
@@ -146,17 +145,33 @@ export class AuthService {
 
   public static async verifyOTP(req: Request, res: Response) {
     try {
-      const { verificationCode } = req.body;
+      let { verificationCode } = req.body;
+      if (req.method.toLowerCase() == "get") {
+        const { token } = req.params;
+        verificationCode = token;
+      }
+
       const user = await Users.findOne({ "verification.verificationCode": verificationCode })
 
       if (user && user?.verification) {
-        const otpValid = await validateOTP(user?.verification?.expiresIn as any)
-        if (!otpValid) {
-          user.verification = undefined;
-          await user?.save();
-          return new ErrorResponse(res, 401, "OTP Expired")
+        let isSuccess = false;
+
+        //Checking Verfication via otp or link
+        const isOtp = /^[0-9]{6}$/.test(verificationCode)
+
+        if (isOtp) {
+          const otpValid = await validateOTP(user?.verification?.expiresIn as any)
+          if (!otpValid) {
+            user.verification = undefined;
+            await user?.save();
+            return new ErrorResponse(res, 401, "OTP Expired")
+          }
         }
         else {
+          isSuccess = true
+        }
+
+        if (isSuccess) {
           user.isVerified = true;
           user.verification = undefined;
           await user?.save();
@@ -194,7 +209,7 @@ export class AuthService {
         expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
         //Sending Email
-        let emailSent = true;
+        let emailSent = await sendMail(email, verificationCode);
 
         if (emailSent) {
           const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
@@ -210,7 +225,26 @@ export class AuthService {
       }
 
       if (method == 2) {
+        const token = generateAccessToken({ email: email, method: method });
 
+        //Generating ExpireTime
+        const currentDate = new Date();
+        const expiresIn = new Date();
+        expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
+
+        if (token != null) {
+          const sentMail = await sendMail(email, token);
+          if (sentMail) {
+            const otpObj = { verificationCode: token, expiresIn: expiresIn.getTime() }
+            console.log("otpObj 2-->", otpObj)
+            users["verification"] = otpObj;
+            await users?.save();
+            return new ErrorResponse(res, 403, 'Verify OTP with Email')
+          }
+          else {
+            return new ErrorResponse(res, 500, 'Email Generation Failed')
+          }
+        }
       }
     } catch (error) {
       console.log("Error forgotpassword ->", error)

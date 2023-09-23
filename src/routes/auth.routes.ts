@@ -11,6 +11,11 @@ const router = Router({ mergeParams: true });
 router.post('/login', celebrate(authSchema.SigninSchema), LoginRepository.login);
 router.post('/register', celebrate(authSchema.SignupSchema), RegisterRepository.register);
 router.post('/refreshToken', verifyToken, RefrehTokenRepository.refresh)
-router.post('/verifyOTP', verifyBodyOTP, verifyRepository.verifyOTP);
+
+//verificationCode is optional
+router.post('/verifyOTP/:token?', verifyBodyOTP, verifyRepository.verifyOTP);
+
+router.get('/verifyOTP/:token?', verifyBodyOTP, verifyRepository.verifyOTP);
+
 router.post('/forgot', forgotPasswordRepository.forgotPassword)
 export default router;

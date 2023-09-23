@@ -41,18 +41,28 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
   }
 }
 
-export const verifyBodyOTP = (req: Request, res: Response, next: NextFunction) => {
+export const verifyBodyOTP = async (req: Request, res: Response, next: NextFunction) => {
   try {
     let { verificationCode } = req.body;
+    let { token } = req.params;
+
     verificationCode = verificationCode?.toString();
 
     if (verificationCode && verificationCode?.length != constant.OTP_LENGTH || verificationCode?.trim() == "")
       return new ErrorResponse(res, 401, "Invalid OTP");
 
-    if (!verificationCode)
+    if (!verificationCode && !token)
       return new ErrorResponse(res, 404, "verificationCode not found");
 
-    next()
+    if (token) {
+      req.headers["authorization"] = `Bearer ${token}`;
+      verifyToken(req, res, next);
+      // console.log("result-->", result)
+      // next()
+    } else {
+      next()
+    }
+
   } catch (error) {
     console.log("error-->", error)
     return new InternalError(res)
