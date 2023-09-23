@@ -24,7 +24,7 @@ export class AuthService {
           return new ErrorResponse(res, 401, "Unauthorized");
         } else {
           if (!users.isVerified) {
-            const otp = await otpGenerator();
+            const verificationCode = await otpGenerator();
 
             //Generating ExpireTime
             const currentDate = new Date();
@@ -32,10 +32,10 @@ export class AuthService {
             expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
             //Sending Email
-            let emailSent = await sendMail(email, otp);
+            let emailSent = true;
 
             if (emailSent) {
-              const otpObj = { otp: otp, expiresIn: expiresIn.getTime() }
+              const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
               console.log("otpObj 1-->", otpObj)
               await Users.findOneAndUpdate({ email: email }, { verification: otpObj });
 
@@ -51,6 +51,11 @@ export class AuthService {
               email: users?.email
             }
 
+            if (users?.verification) {
+              users.verification = undefined;
+              await users.save()
+            }
+            
             const accessToken = generateAccessToken(body)
             const refreshToken = generateRefreshToken(body)
 
@@ -83,7 +88,7 @@ export class AuthService {
         return new ErrorResponse(res, 409, 'User already exist..!')
       }
       else if (users && !users.isVerified) {
-        const otp = await otpGenerator();
+        const verificationCode = await otpGenerator();
 
         //Generating ExpireTime
         const currentDate = new Date();
@@ -91,10 +96,10 @@ export class AuthService {
         expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
         //Sending Email
-        let emailSent = await sendMail(email, otp);
+        let emailSent = true;
 
         if (emailSent) {
-          const otpObj = { otp: otp, expiresIn: expiresIn.getTime() }
+          const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
           console.log("otpObj 1-->", otpObj)
           await Users.findOneAndUpdate({ email: email }, { verification: otpObj });
 
@@ -113,7 +118,7 @@ export class AuthService {
         if (!newuser) {
           return new InternalError(res);
         } else {
-          const otp = await otpGenerator();
+          const verificationCode = await otpGenerator();
 
           //Generating ExpireTime
           const currentDate = new Date();
@@ -121,10 +126,10 @@ export class AuthService {
           expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
 
           //Sending Email
-          let emailSent = await sendMail(email, otp);
+          let emailSent = true;
 
           if (emailSent) {
-            const otpObj = { otp: otp, expiresIn: expiresIn.getTime() }
+            const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
             console.log("otpObj 2-->", otpObj)
             await Users.findOneAndUpdate({ email: email }, { verification: otpObj });
 
@@ -141,20 +146,20 @@ export class AuthService {
 
   public static async verifyOTP(req: Request, res: Response) {
     try {
-      const { otp } = req.body;
-      const user = await Users.findOne({ "verification.otp": otp })
+      const { verificationCode } = req.body;
+      const user = await Users.findOne({ "verification.verificationCode": verificationCode })
 
       if (user && user?.verification) {
         const otpValid = await validateOTP(user?.verification?.expiresIn as any)
         if (!otpValid) {
           user.verification = undefined;
-          user?.save();
+          await user?.save();
           return new ErrorResponse(res, 401, "OTP Expired")
         }
         else {
           user.isVerified = true;
           user.verification = undefined;
-          user?.save();
+          await user?.save();
           return new SuccessResponse(res, {})
         }
       }
@@ -162,6 +167,7 @@ export class AuthService {
         return new ErrorResponse(res, 404, "OTP Not Found")
       }
     } catch (error) {
+      console.log("error-->", error)
       return new InternalError(res)
     }
   }
@@ -171,8 +177,36 @@ export class AuthService {
       const { email, method } = req.body;
       if (!email) return new ErrorResponse(res, 404, "email not found");
       if (!method) return new ErrorResponse(res, 404, "method not found");
-      if (method == 1) {
 
+      const users = await Users.findOne({ email: email });
+
+      if (!users) {
+        return new ErrorResponse(res, 404, 'User not found..!')
+      }
+
+      //Send OTP 
+      if (method == 1) {
+        const verificationCode = await otpGenerator();
+
+        //Generating ExpireTime
+        const currentDate = new Date();
+        const expiresIn = new Date();
+        expiresIn.setMinutes(currentDate.getMinutes() + constant.OTP_EXPIRE_TIME)
+
+        //Sending Email
+        let emailSent = true;
+
+        if (emailSent) {
+          const otpObj = { verificationCode: verificationCode, expiresIn: expiresIn.getTime() }
+          console.log("otpObj 2-->", otpObj)
+
+          users["verification"] = otpObj;
+          await users?.save()
+
+          return new ErrorResponse(res, 403, 'Verify OTP with Email')
+        } else {
+          return new ErrorResponse(res, 500, 'Email Generation Failed')
+        }
       }
 
       if (method == 2) {
@@ -184,14 +218,6 @@ export class AuthService {
     }
   }
 
-  public static async checkUserInDB(req: Request, res: Response) {
-    try {
-
-    } catch (error) {
-      console.log("Error checkUserInDB ->", error)
-      return new InternalError(res);
-    }
-  }
   public static async refreshTokenByToken(req: Request, res: Response) {
     try {
       let body = req.body;

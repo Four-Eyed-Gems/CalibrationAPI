@@ -43,14 +43,18 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
 
 export const verifyBodyOTP = (req: Request, res: Response, next: NextFunction) => {
   try {
-    let { otp } = req.body;
-    otp = otp.toString();
+    let { verificationCode } = req.body;
+    verificationCode = verificationCode?.toString();
 
-    if (otp && otp?.length != constant.OTP_LENGTH || otp.trim() == "") return new ErrorResponse(res, 401, "Invalid OTP");
-    if (!otp) return new ErrorResponse(res, 404, "otp not found");
+    if (verificationCode && verificationCode?.length != constant.OTP_LENGTH || verificationCode?.trim() == "")
+      return new ErrorResponse(res, 401, "Invalid OTP");
+
+    if (!verificationCode)
+      return new ErrorResponse(res, 404, "verificationCode not found");
 
     next()
   } catch (error) {
+    console.log("error-->", error)
     return new InternalError(res)
   }
 }

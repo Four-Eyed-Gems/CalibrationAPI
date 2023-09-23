@@ -4,7 +4,7 @@ export interface UserCreationAttributes {
   refreshToken: string;
   isVerified: boolean;
   verification?: {
-    otp: number,
+    verificationCode: number,
     expiresIn: number
   }
 }
