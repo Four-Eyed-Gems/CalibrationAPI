@@ -153,18 +153,24 @@ export class AuthService {
 
       const user = await Users.findOne({ "verification.verificationCode": verificationCode })
 
+      console.log("user", user?.verification)
+
       if (user && user?.verification) {
         let isSuccess = false;
 
         //Checking Verfication via otp or link
         const isOtp = /^[0-9]{6}$/.test(verificationCode)
-
+        console.log("isOtp-->", isOtp)
         if (isOtp) {
           const otpValid = await validateOTP(user?.verification?.expiresIn as any)
+          console.log("otpValid", otpValid)
           if (!otpValid) {
             user.verification = undefined;
             await user?.save();
             return new ErrorResponse(res, 401, "OTP Expired")
+          }
+          else {
+            isSuccess = true;
           }
         }
         else {
